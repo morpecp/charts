@@ -49,6 +49,7 @@ podAnnotations:
 proxy: {}
 
 containerRuntime:
+platform: kubernetes # or tanzu
 
 ### Inventory agent settings
 inventory:
@@ -233,7 +234,7 @@ addons:
     policy:
       ## Specify image and tag
       image: checkpoint/consec-admission-policy
-      tag: 0.1.2
+      tag: 1.0.0
 
       ## Specify existing service account name ("" to create)
       serviceAccountName: ""
@@ -275,7 +276,7 @@ addons:
     enforcer:
       ## Specify image and tag
       image: checkpoint/consec-admission-enforcer
-      tag: 0.1.2
+      tag: 1.0.0
 
       failurePolicyIntervalHours: 24
 
@@ -300,7 +301,7 @@ addons:
       gsl:
         ## Specify image and tag
         image: checkpoint/consec-admission-gsl
-        tag: 0.1.1
+        tag: 1.0.0
 
         ## Configure resource requests and limits
         ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
@@ -405,7 +406,7 @@ addons:
 
       ## Specify custom image ("" to use default)
       image: checkpoint/consec-runtime-policy
-      tag: 0.2.0
+      tag: 0.3.0
 
       ## Specify existing service account name ("" to create)
       serviceAccountName: ""
@@ -421,7 +422,22 @@ addons:
           memory: 30Mi
         limits:
           cpu: 200m
-          memory: 50Mi 
+          memory: 50Mi
+
+      fluentbit:
+        ## Specify image and tag
+        image: checkpoint/consec-fluentbit
+        tag: 1.6.9-cp
+
+        ## Configure resource requests and limits
+        ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 200m
+            memory: 30Mi
 
       ## Configuration options for nodeSelector, tolerations and affinity for pod
       ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/

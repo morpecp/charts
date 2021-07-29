@@ -16,7 +16,11 @@ spec:
   allowPrivilegeEscalation: false
   allowedHostPaths:
 {{- if eq $config.containerRuntime "docker" }}
+{{- if eq $config.Values.platform "tanzu" }}
+  - pathPrefix: /var/vcap/sys/run/docker/docker.sock
+{{- else }}
   - pathPrefix: /var/run/docker.sock
+{{- end }}
     readOnly: true
 {{- end }}
 {{- if eq $config.containerRuntime "containerd" }}
