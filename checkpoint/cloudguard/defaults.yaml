@@ -85,6 +85,104 @@ inventory:
 ### Addons configuration
 ### Each addon may be disabled
 addons:
+## Registry Scan Add-on
+  registryScan:
+    enabled: false
+    registry:
+
+      ## Specify image and tag
+      image: checkpoint/consec-imagescan-daemon
+      tag: acr_poc-debug
+
+      ## Specify existing service account name ("" to create)
+      serviceAccountName: ""
+
+      acr:
+        clientId: 
+        loginServer:
+
+      ## Extra environment variables passed to the container
+      env:
+      - name: CP_IMAGESCAN_INTERNAL_PROTO
+        value: "HTTP"
+      - name: CP_IMAGESCAN_REGISTRY
+        value: "ACR"
+
+      ## Configure resource requests and limits
+      ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+      resources:
+        requests:
+          cpu: 100m
+          memory: 50Mi
+        limits:
+          cpu: 200m
+          memory: 50Mi
+
+      ## Configuration options for nodeSelector, tolerations and affinity for pod
+      ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+      nodeSelector: {}
+      tolerations:
+      - operator: Exists
+      affinity: {}
+
+      fluentbit:
+        ## Specify image and tag
+        image: checkpoint/consec-fluentbit
+        tag: 1.6.9-cp
+
+        ## Configure resource requests and limits
+        ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+        resources: 
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 200m
+            memory: 30Mi  
+
+    engine:
+      ## Specify image and tag
+      image: checkpoint/consec-imagescan-engine
+      tag: 1.0.0
+
+      ## Specify existing service account name ("" to create)
+      serviceAccountName: ""
+
+      ## Extra environment variables passed to the container
+      env:
+      - name: CP_IMAGESCAN_INTERNAL_PROTO
+        value: "HTTP"
+
+      ## Configure resource requests and limits
+      ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+      resources:
+        requests:
+          cpu: 200m
+          memory: 500Mi
+        limits:
+          cpu: 1000m
+          memory: 2500Mi
+
+      ## Configuration options for nodeSelector, tolerations and affinity for pod
+      ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+      nodeSelector: {}
+      tolerations: []
+      affinity: {}
+      
+      fluentbit:
+        ## Specify image and tag
+        image: checkpoint/consec-fluentbit
+        tag: 1.6.9-cp
+
+        ## Configure resource requests and limits
+        ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 200m
+            memory: 30Mi  
 
 ## Image Scan Add-on
   imageScan:

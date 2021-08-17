@@ -1,0 +1,7 @@
+{{- $config := fromYaml (include "registryscan.engine.config" .) -}}
+{{- if $config.featureConfig.enabled -}}
+{{- $cert := fromYaml (include "generate.selfsigned.cert" $config) -}}
+{{ template "registryscan.engine.secret" dict "config" $config "key" $cert.key }}
+---
+{{ template "registryscan.engine.configmap" dict "config" $config "crt" $cert.crt }}
+{{- end -}}

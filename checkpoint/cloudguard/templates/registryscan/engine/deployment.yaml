@@ -1,0 +1,89 @@
+{{- $config := fromYaml (include "registryscan.engine.config" .) -}}
+{{- if $config.featureConfig.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "agent.resource.name" $config }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    agentVersion: {{ $config.agentConfig.tag }}
+  labels:
+{{ include "common.labels.with.chart" $config | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+{{ include "common.labels" $config | indent 6 }}
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+{{ include "common.pod.annotations" $config | indent 8 }}
+        # adding it so workload will be restarted to be updated with certificates that were re-generated
+        timestamp: {{ now | quote }}
+      labels:
+{{ include "common.labels" $config | indent 8 }}
+    spec:
+{{ include "common.pod.properties" $config | indent 6 }}
+      securityContext:
+        runAsUser: {{ include "cloudguard.nonroot.user" $config }}
+      containers:
+{{ include "telemetry.container" $config | indent 6 }}
+      # Main container
+      - name: {{ $config.agentName }}
+        image: {{ template "agent.main.image" $config }}
+        imagePullPolicy: {{ $config.Values.imagePullPolicy }}
+{{- include "imagescan.engine.resources" $config | indent 8 }}
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - name: secret-volume
+          mountPath: /etc/secret-volume
+        - name: servercert-volume
+          mountPath: /etc/servercert
+        - name: clientcert-volume
+          mountPath: /etc/clientcert
+        - name: clientkey-volume
+          mountPath: /etc/clientkey
+        - name: metrics
+          mountPath: /metric
+        - name: metrics-tail
+          mountPath: /metric-tail
+        command: ["/central_agent"]
+        env:
+{{ include "common.env" $config | indent 8 }}
+        - name: NODE_AGENT_SELECTOR
+          value: app.kubernetes.io/name={{ template "registryscan.registry.resource.name" . }}
+        - name: RELEASE_NAME
+          value: {{ .Release.Name }}
+        - name: CLOUDGUARD_REGION
+          value: {{ include "dome9.subdomain" $config | default "us" }}
+{{- if $config.featureConfig.maxImageSizeMb }}
+{{- if eq ( $config.featureConfig.maxImageSizeMb | int ) 0 }}
+{{- fail "\n\nimageScan: wrong value for maxImageSizeMb, should be integer" -}}
+{{- else }}
+        - name: MAX_SCAN_IMAGE_SIZE_MB
+          value: "{{ $config.featureConfig.maxImageSizeMb }}"
+{{- end }}
+{{- end }}
+      volumes:
+      - name: secret-volume
+        secret:
+          secretName: {{ .Release.Name }}-cp-cloudguard-creds
+      - name: servercert-volume
+        configMap:
+          name: {{ template "registryscan.registry.resource.name" . }}
+      - name: clientcert-volume
+        configMap:
+          name: {{ template "agent.resource.name" $config }}
+      - name: clientkey-volume
+        secret:
+          secretName: {{ template "agent.resource.name" $config }}
+      - name: config-volume-fluentbit
+        configMap:
+          name: {{ template "agent.resource.name" $config }}-fluentbit-metrics
+      - name: metrics
+        emptyDir: {}
+      - name: metrics-tail
+        emptyDir: {}
+{{- end -}}

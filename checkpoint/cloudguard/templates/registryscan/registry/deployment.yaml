@@ -1,0 +1,77 @@
+{{- $config := fromYaml (include "registryscan.registry.config" .) -}}
+{{- if $config.featureConfig.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "agent.resource.name" $config }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    agentVersion: {{ $config.agentConfig.tag }}
+  labels:
+{{ include "common.labels.with.chart" $config | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+{{ include "common.labels" $config | indent 6 }}
+  template:
+    metadata:
+      annotations:
+{{ include "common.pod.annotations" $config | indent 8 }}
+        # adding it so workload will be restarted to be updated with certificates that were re-generated
+        timestamp: {{ now | quote }}
+      labels:
+{{ include "common.labels" $config | indent 8 }}
+    spec:
+{{ include "common.pod.properties" $config | indent 6 }}
+      containers:
+{{ include "telemetry.container" $config | indent 6 }}
+      # Main container
+      - name: {{ $config.agentName }}
+        image: {{ template "agent.main.image" $config }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - name: serverkey-volume
+          mountPath: /etc/serverkey
+        - name: servercert-volume
+          mountPath: /etc/servercert
+        - name: clientcert-volume
+          mountPath: /etc/clientcert
+        - name: metrics
+          mountPath: /metric
+        - name: metrics-tail
+          mountPath: /metric-tail
+        command: ["/node_agent"]
+        ports:
+        - containerPort: 8443
+{{- if $config.agentConfig.resources }}
+        resources:
+{{ toYaml $config.agentConfig.resources | indent 10 }}
+        {{- end }}
+        env:
+{{- if $config.agentConfig.acr.clientId }}
+        - name: ACR_AUTH_CLIENT_ID
+          value: {{ $config.agentConfig.acr.clientId }}
+{{- end }}
+        - name: ACR_LOGIN_SERVER
+          value: {{ $config.agentConfig.acr.loginServer }}
+{{ include "user.defined.env" $config | indent 8 }}
+      volumes:
+      - name: serverkey-volume
+        secret:
+          secretName: {{ template "agent.resource.name" $config }}
+      - name: servercert-volume
+        configMap:
+          name: {{ template "agent.resource.name" $config }}
+      - name: clientcert-volume
+        configMap:
+          name: {{ template "registryscan.engine.resource.name" . }}
+      - name: config-volume-fluentbit
+        configMap:
+          name: {{ template "agent.resource.name" $config }}-fluentbit-metrics
+      - name: metrics
+        emptyDir: {}
+      - name: metrics-tail
+        emptyDir: {}
+{{- end -}}  
