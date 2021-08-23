@@ -92,7 +92,7 @@ addons:
 
       ## Specify image and tag
       image: checkpoint/consec-imagescan-daemon
-      tag: acr_poc-debug
+      tag: 0.0.1-acr-debug
 
       ## Specify existing service account name ("" to create)
       serviceAccountName: ""
