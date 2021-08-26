@@ -42,6 +42,10 @@ spec:
           mountPath: /metric
         - name: metrics-tail
           mountPath: /metric-tail
+{{- if $config.agentConfig.acr.pullSecret }}
+        - name: acr-pull-secret
+          mountPath: "/etc/pull-secret"
+{{- end }}
         command: ["/node_agent"]
         ports:
         - containerPort: 8443
@@ -56,6 +60,12 @@ spec:
 {{- end }}
         - name: ACR_LOGIN_SERVER
           value: {{ $config.agentConfig.acr.loginServer }}
+{{- if $config.agentConfig.acr.pullSecret }}
+        - name: ACR_USE_PULL_SECRET
+          value: "true"
+        - name: ACR_TENANT_ID
+          value: {{ $config.agentConfig.acr.tenantID }}
+{{- end }}
 {{ include "user.defined.env" $config | indent 8 }}
       volumes:
       - name: serverkey-volume
@@ -74,4 +84,12 @@ spec:
         emptyDir: {}
       - name: metrics-tail
         emptyDir: {}
+{{- if $config.agentConfig.acr.pullSecret }}
+      - name: acr-pull-secret
+        secret:
+          secretName: {{ $config.agentConfig.acr.pullSecret }}
+          items:
+          - key: .dockerconfigjson
+            path: config.json
+{{- end }}        
 {{- end -}}  
