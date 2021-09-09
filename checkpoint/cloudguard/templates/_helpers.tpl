@@ -72,7 +72,9 @@ helm.sh/chart: {{ printf "%s-%s" .Chart.name .Chart.version | replace "+" "_" | 
 {{- /* Pod annotations commonly used in agents */ -}}
 {{- define "common.pod.annotations" -}}
 agentVersion: {{ .agentConfig.tag }}
+{{- if ne (include "get.platform" .) "openshift" }}
 seccomp.security.alpha.kubernetes.io/pod: {{ .Values.podAnnotations.seccomp }}
+{{- end }}
 {{- if .Values.podAnnotations.apparmor }}
 container.apparmor.security.beta.kubernetes.io/{{ template "agent.resource.name" . }}:
 {{ toYaml .Values.podAnnotations.apparmor | indent 2 }}
@@ -316,9 +318,9 @@ key: {{ $cert.Key | b64enc }}
 {{- end }}
 
 {{- define "validate.container.runtime" -}}
-{{- if has .Values.containerRuntime (list "docker" "containerd") -}}
+{{- if has .Values.containerRuntime (list "docker" "containerd" "cri-o") -}}
 {{- else -}}
-{{- $err := printf "\n\nERROR: Invalid containerRuntime: %s (should be one of: 'docker', 'containerd')"  .Values.containerRuntime -}}
+{{- $err := printf "\n\nERROR: Invalid containerRuntime: %s (should be one of: 'docker', 'containerd', 'cri-o')"  .Values.containerRuntime -}}
 {{- fail $err -}}
 {{- end -}}
 {{- end -}}
@@ -340,17 +342,25 @@ key: {{ $cert.Key | b64enc }}
 {{- else -}}
 {{- $nodes := lookup "v1" "Node" "" "" -}}
 {{- if ne (len $nodes) 0 -}}
-{{/* examples for runtime version: docker://19.3.3, containerd://1.3.3 */}}
+{{/* examples for runtime version: docker://19.3.3, containerd://1.3.3, cri-o://1.20.3 */}}
 {{- $containerRuntimeVersion := (first $nodes.items).status.nodeInfo.containerRuntimeVersion }}
 {{- $containerRuntime := first (regexSplit ":" $containerRuntimeVersion -1) }}
-{{- if has $containerRuntime (list "docker" "containerd") -}}
+{{- if has $containerRuntime (list "docker" "containerd" "cri-o") -}}
 {{- $containerRuntime }}
 {{- else -}}
 {{- $err := printf "\n\nERROR: Unsupported container runtime: %s" $containerRuntime -}}
 {{- fail $err -}}
 {{- end -}}
 {{- else -}}
-{{- fail "\n\nERROR: No nodes found, cannot identify container runtime. Use '--set containerRuntime=docker' or '--set containerRuntime=containerd'" -}}
+{{- fail "\n\nERROR: No nodes found, cannot identify container runtime. Use '--set containerRuntime=docker' or '--set containerRuntime=containerd' or '--set containerRuntime=cri-o'" -}}
 {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "get.platform" -}}
+{{- if has "security.openshift.io/v1" .Capabilities.APIVersions -}}
+openshift
+{{- else -}}
+{{- .Values.platform | quote -}}
 {{- end -}}
 {{- end -}}

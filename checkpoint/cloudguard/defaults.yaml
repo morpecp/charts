@@ -48,6 +48,7 @@ podAnnotations:
 ## proxy: $HTTPS_PROXY
 proxy: {}
 
+platform: kubernetes
 containerRuntime:
 
 ### Inventory agent settings
@@ -343,7 +344,7 @@ addons:
       ## Main container settings
       ## Specify image and tag
       image: checkpoint/consec-runtime-daemon
-      tag: 0.0.489
+      tag: 0.0.565
 
       ## Specify existing service account name ("" to create)
       serviceAccountName: ""

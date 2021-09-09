@@ -38,7 +38,8 @@ spec:
           value: "/sysdig"
         - name: SYSDIG_BPF_PROBE
           value: ""
-        {{- else }}
+        {{- end }}
+        {{- if or (not $config.featureConfig.BPF) (eq (include "get.platform" $config) "openshift") }}
         securityContext:
           privileged: true
         {{- end }}
@@ -126,12 +127,12 @@ spec:
           value: "/sysdig/.sysdig/sysdig-probe-bpf.o"
         {{- end }}
         securityContext:
-        {{- if $config.featureConfig.BPF }}
+        {{- if or (not $config.featureConfig.BPF) (eq (include "get.platform" $config) "openshift") }}
+          privileged: true
+        {{- else }}
           capabilities:
             add: ["SYS_RESOURCE", "SYS_ADMIN", "SYS_NICE", "SYS_PTRACE", "FOWNER", "SYS_PACCT"]
-        {{- else }}
-          privileged: true
-	{{- end }}
+	      {{- end }}
         volumeMounts:
         - name: rp4c-alerts
           mountPath: /rp4c/alerts
@@ -143,19 +144,24 @@ spec:
           mountPath: /metric-tail
         - name: rp4c-telemetry
           mountPath: /rp4c/telemetry
-{{- if eq $config.containerRuntime "docker" }}
+        {{- if eq $config.containerRuntime "docker" }}
         - name: docker-sock
           mountPath: /var/run/docker.sock
           readOnly: true
         - name: varlibdocker-vol
           mountPath: /var/lib/docker
           readOnly: true
-{{- end }}
-{{- if eq $config.containerRuntime "containerd" }}
+        {{- end }}
+        {{- if eq $config.containerRuntime "containerd" }}
         - name: containerd-sock
           mountPath: /run/containerd/containerd.sock
           readOnly: true
-{{- end }}
+        {{- end }}
+        {{- if eq $config.containerRuntime "cri-o" }}
+        - name: crio-sock
+          mountPath: /var/run/crio/crio.sock
+          readOnly: true
+        {{- end }}
         - name: host-proc-vol
           mountPath: /host/proc
           readOnly: true
@@ -184,7 +190,7 @@ spec:
         emptyDir: {}
       - name: rp4c-telemetry
         emptyDir: {}
-{{- if eq $config.containerRuntime "docker" }}
+      {{- if eq $config.containerRuntime "docker" }}
       - name: docker-sock
         hostPath:
           path: /var/run/docker.sock
@@ -192,13 +198,19 @@ spec:
       - name: varlibdocker-vol
         hostPath:
           path: /var/lib/docker
-{{- end }}
-{{- if eq $config.containerRuntime "containerd" }}
+      {{- end }}
+      {{- if eq $config.containerRuntime "containerd" }}
       - name: containerd-sock
         hostPath:
           path: /run/containerd/containerd.sock
           type: Socket
-{{- end }}
+      {{- end }}
+      {{- if eq $config.containerRuntime "cri-o" }}
+      - name: crio-sock
+        hostPath:
+          path: /var/run/crio/crio.sock
+          type: Socket
+      {{- end }}
       - name: boot-vol
         hostPath:
           path: /boot

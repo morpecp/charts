@@ -30,10 +30,14 @@ spec:
         image: {{ template "agent.main.image" $config }}
         imagePullPolicy: {{ $config.Values.imagePullPolicy }}
         securityContext:
+{{- if eq (include "get.platform" $config) "openshift" }}
+          privileged: true
+{{- else }}
           allowPrivilegeEscalation: false
           capabilities:
             add:
             - NET_BIND_SERVICE
+{{- end }}
         volumeMounts:
 {{- if eq $config.containerRuntime "docker" }}
         - name: docker-sock-volume
@@ -59,27 +63,41 @@ spec:
         {{- end }}
         env:
 {{ include "user.defined.env" $config | indent 8 }}
-{{- if eq $config.containerRuntime "containerd" }}
-        - name: IS_CONTAINERD
+{{- if or (eq $config.containerRuntime "containerd") (eq $config.containerRuntime "cri-o") }}
+        - name: USE_SHIM
           value: "true"
 {{- end }}
-{{- if eq $config.containerRuntime "containerd" }}
+{{- if or (eq $config.containerRuntime "containerd") (eq $config.containerRuntime "cri-o") }}
       - {{ $containerConfig := merge $config (dict "containerName" "shim") -}} 
         name: {{ $containerConfig.containerName }} 
         image: {{ template "agent.sidecar.image" $containerConfig }}
         imagePullPolicy: {{ $config.Values.imagePullPolicy }}
         securityContext:
+{{- if eq $config.containerRuntime "cri-o" }}
+          privileged: true
+{{- else }}
           allowPrivilegeEscalation: false
           capabilities:
             add:
             - NET_BIND_SERVICE
+{{- end }}
         volumeMounts:
         - name: cri-sock-volume
           mountPath: /run/cri.sock
           readOnly: true
+{{- if eq $config.containerRuntime "containerd" }}
         - name: containerd-sock-volume
           mountPath: /run/containerd/containerd.sock
           readOnly: true
+{{- end }}
+{{- if eq $config.containerRuntime "cri-o" }}
+        - name: host
+          mountPath: /host
+          readOnly: false
+        - name: ld-linux
+          mountPath: /lib64/ld-linux-x86-64.so.2
+          readOnly: true
+{{- end }}
         - name: metrics
           mountPath: /metric
         - name: metrics-tail
@@ -90,6 +108,12 @@ spec:
 {{ toYaml $config.agentConfig.shim.resources | indent 10 }}
         {{- end }}
         env:
+{{- if eq $config.containerRuntime "cri-o" }}
+        - name: PATH
+          value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/host/usr/bin
+        - name: LD_LIBRARY_PATH
+          value: /host/lib/x86_64-linux-gnu:/host/lib64:/host/usr/lib/x86_64-linux-gnu
+{{- end }}
 {{- if $config.agentConfig.shim.env }}
 {{ toYaml $config.agentConfig.shim.env | indent 8 }}
 {{- end -}}
@@ -103,12 +127,28 @@ spec:
 {{- else }}
       - name: cri-sock-volume
         hostPath:
+{{- if eq $config.containerRuntime "containerd" }}
           path: /run/containerd/containerd.sock
+{{- else if eq $config.containerRuntime "cri-o" }}
+          path: /run/crio/crio.sock
+{{- end }}
           type: Socket
+{{- if eq $config.containerRuntime "containerd" }}
       - name: containerd-sock-volume
         hostPath:
           path: /run/containerd/containerd.sock
           type: Socket
+{{- end }}
+{{- if eq $config.containerRuntime "cri-o" }}
+      - name: host
+        hostPath:
+          path: /
+          type: Directory
+      - name: ld-linux
+        hostPath:
+          path: /lib64/ld-linux-x86-64.so.2
+          type: File
+{{- end }}
 {{- end }}
       - name: serverkey-volume
         secret:

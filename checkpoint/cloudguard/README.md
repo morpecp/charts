@@ -9,7 +9,7 @@ Note: notice that some of the above capabilities require enrollment in the Early
 ## Prerequisites
 
 General
-- Kubernetes 1.12+, all nodes should have the same container runtime (docker or containerd)
+- Kubernetes 1.12+, all nodes should have the same container runtime (docker, containerd or cri-o)
 - Helm 3.0+
 - Check Point CloudGuard account credentials
 
@@ -117,7 +117,8 @@ The following table list the configurable parameters of this chart and their def
 | `imageRegistry.password`                                   | Image registry password                                         | `CHANGEME`                                       |
 | `imagePullPolicy`                                          | Image pull policy                                               | `Always`                                         |
 | `proxy`                                                    | Proxy settings (e.g. http://my-proxy.com:8080)                  | `{}`                                             |
-| `containerRuntime`                                         | Container runtime (docker/containerd) overriding auto-detection | ``                                               |
+| `containerRuntime`                                         | Container runtime (docker/containerd/cri-o) overriding auto-detection | ``                                         |
+| `platform`                                                 | Kubernetes platform (kubernetes/openshift) overriding auto-detection | `kubernetes`                                |
 | `podAnnotations.seccomp`                                   | Computer Security facility profile.                             | `runtime/default`                                |
 | `podAnnotations.apparmor`                                  | Apparmor Linux kernel security module profile.                  | `{}`                                             |
 | `inventory.agent.image`                                    | Specify image for the agent                                     | `checkpoint/consec-inventory-agent`              |
