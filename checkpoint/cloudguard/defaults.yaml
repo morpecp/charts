@@ -123,10 +123,10 @@ addons:
         resources:
           requests:
             cpu: 100m
-            memory: 50Mi
+            memory: 150Mi
           limits:
             cpu: 200m
-            memory: 50Mi
+            memory: 150Mi
 
       ## Configuration options for nodeSelector, tolerations and affinity for pod
       ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/

@@ -91,28 +91,52 @@ spec:
           readOnly: true
 {{- end }}
 {{- if eq $config.containerRuntime "cri-o" }}
-        - name: host
-          mountPath: /host
+        - name: etc-containers
+          mountPath: /etc/containers
+          readOnly: true
+        - name: run-containers
+          mountPath: /run/containers
           readOnly: false
-        - name: ld-linux
-          mountPath: /lib64/ld-linux-x86-64.so.2
+        - name: var-lib-containers
+          mountPath: /var/lib/containers
+          readOnly: false
+{{- if ne (include "get.platform" $config) "openshift" }}
+        - name: lib-x86-64-linux-gnu
+          mountPath: /lib/x86_64-linux-gnu
+          readOnly: true
+        - name: usr-lib-x86-64-linux-gnu
+          mountPath: /usr/lib/x86_64-linux-gnu
+          readOnly: true
+{{- end }}
+        - name: lib64
+          mountPath: /lib64
+          readOnly: true
+        - name: podman
+          mountPath: /usr/bin/podman
+          readOnly: true
+        - name: conmon
+          mountPath: /usr/bin/conmon
+          readOnly: true
+        - name: runc
+          mountPath: /usr/bin/runc
+          readOnly: true
+        - name: nsenter
+          mountPath: /usr/bin/nsenter
           readOnly: true
 {{- end }}
         - name: metrics
           mountPath: /metric
         - name: metrics-tail
           mountPath: /metric-tail
-        command: ["/server"]
+        command: ["/shim"]
 {{- if $config.agentConfig.shim.resources }}
         resources:
 {{ toYaml $config.agentConfig.shim.resources | indent 10 }}
         {{- end }}
         env:
 {{- if eq $config.containerRuntime "cri-o" }}
-        - name: PATH
-          value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/host/usr/bin
         - name: LD_LIBRARY_PATH
-          value: /host/lib/x86_64-linux-gnu:/host/lib64:/host/usr/lib/x86_64-linux-gnu
+          value: /lib/x86_64-linux-gnu:/lib64:/usr/lib/x86_64-linux-gnu
 {{- end }}
 {{- if $config.agentConfig.shim.env }}
 {{ toYaml $config.agentConfig.shim.env | indent 8 }}
@@ -140,13 +164,47 @@ spec:
           type: Socket
 {{- end }}
 {{- if eq $config.containerRuntime "cri-o" }}
-      - name: host
+      - name: etc-containers
         hostPath:
-          path: /
+          path: /etc/containers
           type: Directory
-      - name: ld-linux
+      - name: run-containers
         hostPath:
-          path: /lib64/ld-linux-x86-64.so.2
+          path: /run/containers
+          type: Directory
+      - name: var-lib-containers
+        hostPath:
+          path: /var/lib/containers
+          type: Directory
+{{- if ne (include "get.platform" $config) "openshift" }}
+      - name: lib-x86-64-linux-gnu
+        hostPath:
+          path: /lib/x86_64-linux-gnu
+          type: Directory
+      - name: usr-lib-x86-64-linux-gnu
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu
+          type: Directory
+{{- end }}
+      - name: lib64
+        hostPath:
+          path: /lib64
+          type: Directory
+      - name: podman
+        hostPath:
+          path: /usr/bin/podman
+          type: File
+      - name: conmon
+        hostPath:
+          path: /usr/bin/conmon
+          type: File
+      - name: runc
+        hostPath:
+          path: /usr/bin/runc
+          type: File
+      - name: nsenter
+        hostPath:
+          path: /usr/bin/nsenter
           type: File
 {{- end }}
 {{- end }}
