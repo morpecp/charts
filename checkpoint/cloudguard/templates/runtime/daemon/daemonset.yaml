@@ -189,13 +189,14 @@ spec:
         hostPath:
 {{- if eq $config.Values.platform "tanzu" }}
           path: /var/vcap/sys/run/docker/docker.sock
+          type: Socket
 {{- else }}
           path: /var/run/docker.sock
-{{- end }}
           type: Socket
       - name: varlibdocker-vol
         hostPath:
           path: /var/lib/docker
+{{- end }}
 {{- end }}
 {{- if eq $config.containerRuntime "containerd" }}
       - name: containerd-sock
